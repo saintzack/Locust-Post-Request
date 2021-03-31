@@ -1,0 +1,50 @@
+from locust import HttpUser, task, constant
+import json
+from locust.contrib.fasthttp import FastHttpUser
+
+class MyUser(HttpUser, FastHttpUser):
+    wait_time = constant(1)
+
+    def on_start(self):
+        """ on_start is called when a Locust start before any task is scheduled """
+
+        # put the ip address or dns of your apic-em controller in this url
+        url1 = "http://10.50.1.87:3030/authentication"
+        # the username and password to access the APIC-EM Controller
+        payload1 = {
+	                "strategy": "local-phone",
+	                "phone": "+6287889863031",
+	                "password": "Mitra01a"
+                    }
+        # Content type must be included in the header
+        header = {"content-type": "application/json"}
+
+        # Performs a POST on the specified url to get the service ticket
+        response = self.client.post(url1, data=json.dumps(payload1), headers=header)
+
+
+        # convert response to json format
+        r_json = json.loads(response.text)
+
+        # parse the json to get the service ticket
+        self.acccessToken= "Bearer " + (r_json["data"]["accessToken"])
+    @task(2)
+    def test_api2(self):
+        url = "http://msmandiri.garudafood.co.id:3030/calc-prices/"
+        payload =[
+                    {
+                        "product_id": "90101154204100",
+                        "qty_product": "60"
+                    }
+                    ]
+        header = {"content-type": "application/json", "Authorization": self.acccessToken}
+        post_response = self.client.post(url, data=json.dumps(payload), headers=header, verify=True)
+        if post_response.status_code!= 200:
+            print('sukses')
+        elif post_response.status_code!=201:
+            print('gagal lurd')
+        else:
+            print('faillll')
+
+
+
